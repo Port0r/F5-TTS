@@ -105,6 +105,9 @@ f5-tts_infer-cli -c custom.toml
 
 # Multi voice. See src/f5_tts/infer/README.md
 f5-tts_infer-cli -c src/f5_tts/infer/examples/multi/story.toml
+
+# Skip audio conversion to safe time, if you think your .wav is fine
+f5-tts_infer-cli -c custom.toml --skip_audio_conversion
 ```
 
 ### 3. More instructions
