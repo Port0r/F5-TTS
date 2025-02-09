@@ -162,6 +162,11 @@ parser.add_argument(
     type=float,
     help=f"Fix the total duration (ref and gen audios) in seconds, default {fix_duration}",
 )
+parser.add_argument(
+    "--skip_audio_conversion",
+    action="store_true",
+    help=f"Skip the conversion, for when you already provide a poper .wav file.",
+)
 args = parser.parse_args()
 
 
@@ -203,6 +208,7 @@ cfg_strength = args.cfg_strength or config.get("cfg_strength", cfg_strength)
 sway_sampling_coef = args.sway_sampling_coef or config.get("sway_sampling_coef", sway_sampling_coef)
 speed = args.speed or config.get("speed", speed)
 fix_duration = args.fix_duration or config.get("fix_duration", fix_duration)
+skip_audio_conversion = args.skip_audio_conversion or config.get("skip_audio_conversion", False)
 
 
 # patches for pip pkg user
@@ -287,13 +293,16 @@ def main():
     else:
         voices = config["voices"]
         voices["main"] = main_voice
+
     for voice in voices:
-        print("Voice:", voice)
         print("ref_audio ", voices[voice]["ref_audio"])
-        voices[voice]["ref_audio"], voices[voice]["ref_text"] = preprocess_ref_audio_text(
-            voices[voice]["ref_audio"], voices[voice]["ref_text"]
-        )
-        print("ref_audio_", voices[voice]["ref_audio"], "\n\n")
+        if not skip_audio_conversion:
+            voices[voice]["ref_audio"], voices[voice]["ref_text"] = preprocess_ref_audio_text(
+                voices[voice]["ref_audio"], voices[voice]["ref_text"]
+            )
+            print("ref_audio_", voices[voice]["ref_audio"], "\n\n")
+        else:
+            print("Audio conversion skipped")
 
     generated_audio_segments = []
     reg1 = r"(?=\[\w+\])"
@@ -303,6 +312,7 @@ def main():
         if not text.strip():
             continue
         match = re.match(reg2, text)
+
         if match:
             voice = match[1]
         else:
@@ -355,6 +365,20 @@ def main():
                 remove_silence_for_generated_wav(f.name)
             print(f.name)
 
+def get_toml_files(directory):
+    # Dictionary to store the Toml file names without extension as keys
+    toml_dict = {}
+    
+    # Get all files in the directory
+    for filename in os.listdir(directory):
+        # Check if the file has a .toml extension
+        if filename.endswith('.toml'):
+            # Extract the name without extension and add to dictionary
+            base_name = os.path.splitext(filename)[0]
+            # Add the base name as a key (value can be anything, e.g., True)
+            toml_dict[base_name] = {"ref_audio":directory + base_name + ".wav", "ref_text":""}  # You can change the value if needed
+    
+    return toml_dict
 
 if __name__ == "__main__":
     main()
